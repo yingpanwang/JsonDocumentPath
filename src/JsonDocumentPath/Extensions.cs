@@ -195,7 +195,7 @@ internal static class Extensions
         }
     }
 
-    public static IEnumerable<JsonNode?> ChildrenTokens(this JsonNode src)
+    public static IEnumerable<JsonNode?> ChildrenNodes(this JsonNode src)
     {
         var srcValueKind = src.GetSafeJsonValueKind();
 

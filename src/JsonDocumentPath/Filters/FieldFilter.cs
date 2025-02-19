@@ -73,7 +73,7 @@ namespace System.Text.Json
                     }
                     else
                     {
-                        foreach (var p in t.ChildrenTokens())
+                        foreach (var p in t.ChildrenNodes())
                         {
                             yield return p;
                         }

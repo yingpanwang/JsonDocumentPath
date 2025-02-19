@@ -465,11 +465,11 @@ public class JsonNodePath
     {
         if (value == null)
         {
-            return JsonValue.Create("null");
+            return JsonValue.Create<object>(null);
         }
         if (value is string)
         {
-            return JsonValue.Create(string.Concat("\"", value, "\""));
+            return JsonNode.Parse(string.Concat("\"", value, "\"")).GetValue<string>();
         }
         if (value is bool)
         {

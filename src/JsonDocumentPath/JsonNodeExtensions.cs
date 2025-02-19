@@ -24,6 +24,20 @@ internal static class JsonNodeExtensions
         return node.GetValue<int>();
     }
 
+    public static object? GetObjectValue(this JsonNode node)
+    {
+        var nodeValueKind = node.GetSafeJsonValueKind();
+
+        return nodeValueKind switch
+        {
+            JsonValueKind.Null => null,
+            JsonValueKind.String => node.GetString(),
+            JsonValueKind.Number => node.GetDouble(),
+            JsonValueKind.True or JsonValueKind.False => node.GetBoolean(),
+            _ => node.ToJsonString(),
+        };
+    }
+
     /// <summary>
     /// 获取安全的 JsonValueKind
     /// </summary>

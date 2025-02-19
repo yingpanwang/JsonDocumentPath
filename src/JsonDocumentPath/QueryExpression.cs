@@ -132,19 +132,18 @@ namespace System.Text.Json
 
         private IEnumerable<JsonNode?> GetResult(JsonNode root, JsonNode t, object? o)
         {
+            if (o is null)
+            {
+                return [null];
+            }
             if (o is JsonNode resultToken)
             {
-                // 如果是字符串 有可能嵌套字符 使用了 Unicode 编码 包含了 \u0022
-                if (resultToken.GetSafeJsonValueKind() == JsonValueKind.String)
-                {
-                    return [JsonNode.Parse(resultToken.ToString())];
-                }
-                return new JsonNode?[1] { resultToken };
+                return [resultToken];
             }
 
             if (o is JsonElement resultElement)
             {
-                return new JsonNode?[1] { JsonNode.Parse(resultElement.GetRawText()) };
+                return [JsonNode.Parse(resultElement.GetRawText())];
             }
 
             if (o is List<PathFilter> pathFilters)

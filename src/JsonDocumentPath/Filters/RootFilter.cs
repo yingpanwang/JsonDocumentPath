@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json
 {
@@ -13,6 +14,11 @@ namespace System.Text.Json
         public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
         {
             return new JsonElement?[1] { root };
+        }
+
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
+        {
+            return [root];
         }
     }
 }

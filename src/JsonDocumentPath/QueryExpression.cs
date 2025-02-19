@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace System.Text.Json
@@ -31,6 +32,8 @@ namespace System.Text.Json
         }
 
         public abstract bool IsMatch(JsonElement root, JsonElement t);
+
+        public abstract bool IsMatch(JsonNode root, JsonNode t);
     }
 
     internal class CompositeExpression : QueryExpression
@@ -55,6 +58,7 @@ namespace System.Text.Json
                         }
                     }
                     return true;
+
                 case QueryOperator.Or:
                     foreach (QueryExpression e in Expressions)
                     {
@@ -64,6 +68,36 @@ namespace System.Text.Json
                         }
                     }
                     return false;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        public override bool IsMatch(JsonNode root, JsonNode t)
+        {
+            switch (Operator)
+            {
+                case QueryOperator.And:
+                    foreach (QueryExpression e in Expressions)
+                    {
+                        if (!e.IsMatch(root, t))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+
+                case QueryOperator.Or:
+                    foreach (QueryExpression e in Expressions)
+                    {
+                        if (e.IsMatch(root, t))
+                        {
+                            return true;
+                        }
+                    }
+                    return false;
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -94,6 +128,30 @@ namespace System.Text.Json
             }
 
             return Enumerable.Empty<JsonElement?>();
+        }
+
+        private IEnumerable<JsonNode?> GetResult(JsonNode root, JsonNode t, object? o)
+        {
+            if (o is null)
+            {
+                return [null];
+            }
+            if (o is JsonNode resultToken)
+            {
+                return [resultToken];
+            }
+
+            if (o is JsonElement resultElement)
+            {
+                return [JsonNode.Parse(resultElement.GetRawText())];
+            }
+
+            if (o is List<PathFilter> pathFilters)
+            {
+                return JsonNodePath.Evaluate(pathFilters, root, t, false);
+            }
+
+            return Enumerable.Empty<JsonNode?>();
         }
 
         public override bool IsMatch(JsonElement root, JsonElement t)
@@ -127,6 +185,37 @@ namespace System.Text.Json
             return false;
         }
 
+        public override bool IsMatch(JsonNode root, JsonNode t)
+        {
+            if (Operator == QueryOperator.Exists)
+            {
+                return GetResult(root, t, Left).Any();
+            }
+
+            using (IEnumerator<JsonNode?> leftResults = GetResult(root, t, Left).GetEnumerator())
+            {
+                if (leftResults.MoveNext())
+                {
+                    IEnumerable<JsonNode?> rightResultsEn = GetResult(root, t, Right);
+                    ICollection<JsonNode?> rightResults = rightResultsEn as ICollection<JsonNode?> ?? rightResultsEn.ToList();
+
+                    do
+                    {
+                        JsonNode leftResult = leftResults.Current;
+                        foreach (JsonNode rightResult in rightResults)
+                        {
+                            if (MatchTokens(leftResult, rightResult))
+                            {
+                                return true;
+                            }
+                        }
+                    } while (leftResults.MoveNext());
+                }
+            }
+
+            return false;
+        }
+
         private bool MatchTokens(JsonElement leftResult, JsonElement rightResult)
         {
             if (leftResult.IsValue() && rightResult.IsValue())
@@ -139,54 +228,151 @@ namespace System.Text.Json
                             return true;
                         }
                         break;
+
                     case QueryOperator.Equals:
                         if (EqualsWithStringCoercion(leftResult, rightResult))
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.StrictEquals:
                         if (EqualsWithStrictMatch(leftResult, rightResult))
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.NotEquals:
                         if (!EqualsWithStringCoercion(leftResult, rightResult))
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.StrictNotEquals:
                         if (!EqualsWithStrictMatch(leftResult, rightResult))
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.GreaterThan:
                         if (leftResult.CompareTo(rightResult) > 0)
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.GreaterThanOrEquals:
                         if (leftResult.CompareTo(rightResult) >= 0)
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.LessThan:
                         if (leftResult.CompareTo(rightResult) < 0)
                         {
                             return true;
                         }
                         break;
+
                     case QueryOperator.LessThanOrEquals:
                         if (leftResult.CompareTo(rightResult) <= 0)
                         {
                             return true;
                         }
                         break;
+
+                    case QueryOperator.Exists:
+                        return true;
+                }
+            }
+            else
+            {
+                switch (Operator)
+                {
+                    case QueryOperator.Exists:
+                    // you can only specify primitive types in a comparison
+                    // notequals will always be true
+                    case QueryOperator.NotEquals:
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool MatchTokens(JsonNode leftResult, JsonNode rightResult)
+        {
+            if (leftResult.IsValue() && rightResult.IsValue())
+            {
+                switch (Operator)
+                {
+                    case QueryOperator.RegexEquals:
+                        if (RegexEquals(leftResult, rightResult))
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.Equals:
+                        if (EqualsWithStringCoercion(leftResult, rightResult))
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.StrictEquals:
+                        if (EqualsWithStrictMatch(leftResult, rightResult))
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.NotEquals:
+                        if (!EqualsWithStringCoercion(leftResult, rightResult))
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.StrictNotEquals:
+                        if (!EqualsWithStrictMatch(leftResult, rightResult))
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.GreaterThan:
+                        if (leftResult.CompareTo(rightResult) > 0)
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.GreaterThanOrEquals:
+                        if (leftResult.CompareTo(rightResult) >= 0)
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.LessThan:
+                        if (leftResult.CompareTo(rightResult) < 0)
+                        {
+                            return true;
+                        }
+                        break;
+
+                    case QueryOperator.LessThanOrEquals:
+                        if (leftResult.CompareTo(rightResult) <= 0)
+                        {
+                            return true;
+                        }
+                        break;
+
                     case QueryOperator.Exists:
                         return true;
                 }
@@ -222,6 +408,24 @@ namespace System.Text.Json
             return Regex.IsMatch(input.GetString(), patternText, GetRegexOptions(optionsText));
         }
 
+        private static bool RegexEquals(JsonNode input, JsonNode pattern)
+        {
+            var inputValueKind = input.GetSafeJsonValueKind();
+            var patternValueKind = pattern.GetSafeJsonValueKind();
+            if (inputValueKind != JsonValueKind.String || patternValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            string regexText = pattern.GetValue<string>();
+            int patternOptionDelimiterIndex = regexText.LastIndexOf('/');
+
+            string patternText = regexText.Substring(1, patternOptionDelimiterIndex - 1);
+            string optionsText = regexText.Substring(patternOptionDelimiterIndex + 1);
+
+            return Regex.IsMatch(input.GetValue<string>(), patternText, GetRegexOptions(optionsText));
+        }
+
         internal static bool EqualsWithStringCoercion(JsonElement value, JsonElement queryValue)
         {
             if (value.Equals(queryValue))
@@ -244,38 +448,111 @@ namespace System.Text.Json
             return string.Equals(value.ToString(), queryValue.GetString(), StringComparison.Ordinal);
         }
 
-        internal static bool EqualsWithStrictMatch(JsonElement value, JsonElement queryValue)
+        internal static bool EqualsWithStringCoercion(JsonNode value, JsonNode queryValue)
+        {
+            if (value.Equals(queryValue))
+            {
+                return true;
+            }
+
+            // Handle comparing an integer with a float
+            // e.g. Comparing 1 and 1.0
+
+            var valueKind = value.GetSafeJsonValueKind();
+            var queryValueKind = queryValue.GetSafeJsonValueKind();
+
+            if (valueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
+            {
+                return value.GetDouble() == queryValue.GetDouble();
+            }
+
+            if (queryValueKind != JsonValueKind.String)
+            {
+                return false;
+            }
+
+            return string.Equals(value.ToString(), queryValue.GetString(), StringComparison.Ordinal);
+        }
+
+        internal static bool EqualsWithStrictMatch(JsonNode value, JsonNode queryValue)
         {
             // we handle floats and integers the exact same way, so they are pseudo equivalent
-            if (value.ValueKind != queryValue.ValueKind)
+
+            JsonValueKind thisValueKind = value.GetSafeJsonValueKind();
+            JsonValueKind queryValueKind = queryValue.GetSafeJsonValueKind();
+
+            if (thisValueKind != queryValueKind)
             {
                 return false;
             }
 
             // Handle comparing an integer with a float
             // e.g. Comparing 1 and 1.0
-            if (value.ValueKind == JsonValueKind.Number && queryValue.ValueKind == JsonValueKind.Number)
+            if (thisValueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
+            {
+                return value.GetValue<double>() == queryValue.GetValue<double>();
+            }
+
+            if (thisValueKind == JsonValueKind.String && queryValueKind == JsonValueKind.String)
+            {
+                return value.GetValue<string>() == queryValue.GetValue<string>();
+            }
+
+            if (thisValueKind == JsonValueKind.Null && queryValueKind == JsonValueKind.Null)
+            {
+                return true;
+            }
+
+            if (thisValueKind == JsonValueKind.Undefined && queryValueKind == JsonValueKind.Undefined)
+            {
+                return true;
+            }
+
+            if ((thisValueKind == JsonValueKind.False || thisValueKind == JsonValueKind.True) &&
+                (queryValueKind == JsonValueKind.False || queryValueKind == JsonValueKind.True))
+            {
+                return value.GetValue<bool>() == queryValue.GetValue<bool>();
+            }
+
+            return value.Equals(queryValue);
+        }
+
+        internal static bool EqualsWithStrictMatch(JsonElement value, JsonElement queryValue)
+        {
+            // we handle floats and integers the exact same way, so they are pseudo equivalent
+
+            JsonValueKind thisValueKind = value.ValueKind;
+            JsonValueKind queryValueKind = queryValue.ValueKind;
+
+            if (thisValueKind != queryValueKind)
+            {
+                return false;
+            }
+
+            // Handle comparing an integer with a float
+            // e.g. Comparing 1 and 1.0
+            if (thisValueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
             {
                 return value.GetDouble() == queryValue.GetDouble();
             }
 
-            if (value.ValueKind == JsonValueKind.String && queryValue.ValueKind == JsonValueKind.String)
+            if (thisValueKind == JsonValueKind.String && queryValueKind == JsonValueKind.String)
             {
                 return value.GetString() == queryValue.GetString();
             }
 
-            if (value.ValueKind == JsonValueKind.Null && queryValue.ValueKind == JsonValueKind.Null)
+            if (thisValueKind == JsonValueKind.Null && queryValueKind == JsonValueKind.Null)
             {
                 return true;
             }
 
-            if (value.ValueKind == JsonValueKind.Undefined && queryValue.ValueKind == JsonValueKind.Undefined)
+            if (thisValueKind == JsonValueKind.Undefined && queryValueKind == JsonValueKind.Undefined)
             {
                 return true;
             }
 
-            if ((value.ValueKind == JsonValueKind.False || value.ValueKind == JsonValueKind.True) && 
-                (queryValue.ValueKind == JsonValueKind.False || queryValue.ValueKind == JsonValueKind.True))
+            if ((thisValueKind == JsonValueKind.False || thisValueKind == JsonValueKind.True) &&
+                (queryValueKind == JsonValueKind.False || queryValueKind == JsonValueKind.True))
             {
                 return value.GetBoolean() == queryValue.GetBoolean();
             }
@@ -294,12 +571,15 @@ namespace System.Text.Json
                     case 'i':
                         options |= RegexOptions.IgnoreCase;
                         break;
+
                     case 'm':
                         options |= RegexOptions.Multiline;
                         break;
+
                     case 's':
                         options |= RegexOptions.Singleline;
                         break;
+
                     case 'x':
                         options |= RegexOptions.ExplicitCapture;
                         break;

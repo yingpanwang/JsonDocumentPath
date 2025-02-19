@@ -1,28 +1,25 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json
 {
-    internal partial class FieldMultipleFilter : PathFilter
+    internal partial class FieldMultipleFilter
     {
-        internal List<string> Names;
-
-        public FieldMultipleFilter(List<string> names)
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
         {
-            Names = names;
-        }
-
-        public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
-        {
-            foreach (JsonElement t in current)
+            foreach (JsonNode? t in current)
             {
-                if (t.ValueKind == JsonValueKind.Object)
+                if (t?.GetSafeJsonValueKind() == JsonValueKind.Object)
                 {
+                    var tObject = t.AsObject();
                     foreach (string name in Names)
                     {
-                        if (t.TryGetProperty(name, out JsonElement v))
+                        if (tObject.TryGetPropertyValue(name, out JsonNode? v))
                         {
-                            if (v.ValueKind != JsonValueKind.Null)
+                            if (v?.GetSafeJsonValueKind() != JsonValueKind.Null)
                             {
                                 yield return v;
                             }
@@ -44,3 +41,5 @@ namespace System.Text.Json
         }
     }
 }
+
+#endif

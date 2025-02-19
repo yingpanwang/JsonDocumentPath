@@ -1,4 +1,6 @@
-﻿using System.Text.Json.Nodes;
+﻿#if NET8_0_OR_GREATER
+
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json;
 
@@ -52,3 +54,5 @@ internal static class JsonNodeExtensions
         return node.GetValueKind();
     }
 }
+
+#endif

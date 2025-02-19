@@ -1,27 +1,24 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json
 {
-    internal partial class FieldFilter : PathFilter
+    internal partial class FieldFilter
     {
-        internal string? Name;
-
-        public FieldFilter(string? name)
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
         {
-            Name = name;
-        }
-
-        public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
-        {
-            foreach (JsonElement t in current)
+            foreach (JsonNode t in current)
             {
-                if (t.ValueKind == JsonValueKind.Object)
+                if (t.GetSafeJsonValueKind() == JsonValueKind.Object)
                 {
                     if (Name != null)
                     {
-                        if (t.TryGetProperty(Name, out JsonElement v))
+                        var tObject = t.AsObject();
+                        if (tObject.TryGetPropertyValue(Name, out JsonNode? v))
                         {
-                            if (v.ValueKind != JsonValueKind.Null)
+                            if (v?.GetSafeJsonValueKind() != JsonValueKind.Null)
                             {
                                 yield return v;
                             }
@@ -33,7 +30,7 @@ namespace System.Text.Json
                     }
                     else
                     {
-                        foreach (var p in t.ChildrenTokens())
+                        foreach (var p in t.ChildrenNodes())
                         {
                             yield return p;
                         }
@@ -50,3 +47,5 @@ namespace System.Text.Json
         }
     }
 }
+
+#endif

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
@@ -438,7 +440,7 @@ public class JsonNodePath
         return new JsonException("Unexpected character while parsing path query: " + _expression[_currentIndex]);
     }
 
-    private object ParseSide()
+    private object? ParseSide()
     {
         EatWhitespace();
 
@@ -461,7 +463,7 @@ public class JsonNodePath
         throw CreateUnexpectedCharacterException();
     }
 
-    private JsonNode SafeValue(object? value)
+    private JsonNode? SafeValue(object? value)
     {
         if (value == null)
         {
@@ -469,7 +471,7 @@ public class JsonNodePath
         }
         if (value is string)
         {
-            return JsonNode.Parse(string.Concat("\"", value, "\"")).GetValue<string>();
+            return JsonNode.Parse(string.Concat("\"", value, "\""))?.GetValue<string>();
         }
         if (value is bool)
         {
@@ -489,7 +491,7 @@ public class JsonNodePath
 
         while (_currentIndex < _expression.Length)
         {
-            object left = ParseSide();
+            object left = ParseSide()!;
             object? right = null;
 
             QueryOperator op;
@@ -924,3 +926,5 @@ public class JsonNodePath
         return current;
     }
 }
+
+#endif

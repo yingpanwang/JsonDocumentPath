@@ -1,13 +1,15 @@
 ﻿using System.Collections.Generic;
+
+#if NET8_0_OR_GREATER
+
 using System.Text.Json.Nodes;
 
+#endif
 namespace System.Text.Json
 {
     public abstract class PathFilter
     {
         public abstract IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch);
-
-        public abstract IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch);
 
         protected static JsonElement? GetTokenIndex(JsonElement t, bool errorWhenNoMatch, int index)
         {
@@ -64,6 +66,10 @@ namespace System.Text.Json
             }
         }
 
+#if NET8_0_OR_GREATER
+
+        public abstract IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch);
+
         protected static JsonNode? GetTokenIndex(JsonNode t, bool errorWhenNoMatch, int index)
         {
             if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
@@ -92,13 +98,13 @@ namespace System.Text.Json
             }
         }
 
-        protected static IEnumerable<(string Name, JsonNode Value)> GetNextScanValue(JsonNode value)
+        protected static IEnumerable<(string? Name, JsonNode? Value)> GetNextScanValue(JsonNode? value)
         {
             yield return (null, value);
 
             if (value.GetSafeJsonValueKind() == JsonValueKind.Array)
             {
-                foreach (var e in value.AsArray())
+                foreach (var e in value?.AsArray())
                 {
                     foreach (var c in GetNextScanValue(e))
                     {
@@ -108,7 +114,7 @@ namespace System.Text.Json
             }
             else if (value.GetSafeJsonValueKind() == JsonValueKind.Object)
             {
-                var propertyEnumerator = value.AsObject().GetEnumerator();
+                var propertyEnumerator = value?.AsObject().GetEnumerator();
 
                 while (propertyEnumerator.MoveNext())
                 {
@@ -121,5 +127,7 @@ namespace System.Text.Json
                 }
             }
         }
+
+#endif
     }
 }

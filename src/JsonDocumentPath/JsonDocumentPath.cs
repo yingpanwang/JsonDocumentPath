@@ -1,8 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Globalization;
-using System.Text.Json.Nodes;
 
+#pragma warning disable IDE0130 // 命名空间与文件夹结构不匹配
 namespace System.Text.Json
+#pragma warning restore IDE0130 // 命名空间与文件夹结构不匹配
 {
     internal class JsonDocumentPath
     {
@@ -913,11 +914,6 @@ namespace System.Text.Json
             return Evaluate(Filters, root, t, errorWhenNoMatch);
         }
 
-        internal IEnumerable<JsonNode?> Evaluate(JsonNode root, JsonNode t, bool errorWhenNoMatch)
-        {
-            return Evaluate(Filters, root, t, errorWhenNoMatch);
-        }
-
         internal static IEnumerable<JsonElement?> Evaluate(List<PathFilter> filters, JsonElement root, JsonElement t, bool errorWhenNoMatch)
         {
             IEnumerable<JsonElement?> current = new JsonElement?[] { t };
@@ -929,15 +925,20 @@ namespace System.Text.Json
             return current;
         }
 
-        internal static IEnumerable<JsonNode?> Evaluate(List<PathFilter> filters, JsonNode root, JsonNode t, bool errorWhenNoMatch)
-        {
-            IEnumerable<JsonNode?> current = new JsonNode?[] { t };
-            foreach (PathFilter filter in filters)
-            {
-                current = filter.ExecuteFilter(root, current, errorWhenNoMatch);
-            }
+        //internal IEnumerable<JsonNode?> Evaluate(JsonNode root, JsonNode t, bool errorWhenNoMatch)
+        //{
+        //    return Evaluate(Filters, root, t, errorWhenNoMatch);
+        //}
 
-            return current;
-        }
+        //internal static IEnumerable<JsonNode?> Evaluate(List<PathFilter> filters, JsonNode root, JsonNode t, bool errorWhenNoMatch)
+        //{
+        //    IEnumerable<JsonNode?> current = new JsonNode?[] { t };
+        //    foreach (PathFilter filter in filters)
+        //    {
+        //        current = filter.ExecuteFilter(root, current, errorWhenNoMatch);
+        //    }
+
+        //    return current;
+        //}
     }
 }

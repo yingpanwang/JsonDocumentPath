@@ -1,18 +1,19 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json
 {
-    internal partial class ArrayIndexFilter : PathFilter
+    internal partial class ArrayIndexFilter
     {
-        public int? Index { get; set; }
-
-        public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
         {
-            foreach (JsonElement t in current)
+            foreach (JsonNode t in current)
             {
                 if (Index != null)
                 {
-                    JsonElement? v = GetTokenIndex(t, errorWhenNoMatch, Index.GetValueOrDefault());
+                    JsonNode? v = GetTokenIndex(t, errorWhenNoMatch, Index.GetValueOrDefault());
 
                     if (v != null)
                     {
@@ -21,11 +22,12 @@ namespace System.Text.Json
                 }
                 else
                 {
-                    if (t.ValueKind == JsonValueKind.Array)
+                    if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
                     {
-                        foreach (JsonElement v in t.EnumerateArray())
+                        var tArrayEnumerator = t.AsArray().GetEnumerator();
+                        while (tArrayEnumerator.MoveNext())
                         {
-                            yield return v;
+                            yield return tArrayEnumerator.Current;
                         }
                     }
                     else
@@ -40,3 +42,5 @@ namespace System.Text.Json
         }
     }
 }
+
+#endif

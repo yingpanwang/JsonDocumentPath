@@ -1,48 +1,20 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace System.Text.Json
 {
-    internal enum QueryOperator
+    internal partial class QueryExpression
     {
-        None = 0,
-        Equals = 1,
-        NotEquals = 2,
-        Exists = 3,
-        LessThan = 4,
-        LessThanOrEquals = 5,
-        GreaterThan = 6,
-        GreaterThanOrEquals = 7,
-        And = 8,
-        Or = 9,
-        RegexEquals = 10,
-        StrictEquals = 11,
-        StrictNotEquals = 12
+        public abstract bool IsMatch(JsonNode root, JsonNode t);
     }
 
-    internal abstract partial class QueryExpression
+    internal partial class CompositeExpression
     {
-        internal QueryOperator Operator;
-
-        public QueryExpression(QueryOperator @operator)
-        {
-            Operator = @operator;
-        }
-
-        public abstract bool IsMatch(JsonElement root, JsonElement t);
-    }
-
-    internal partial class CompositeExpression : QueryExpression
-    {
-        public List<QueryExpression> Expressions { get; set; }
-
-        public CompositeExpression(QueryOperator @operator) : base(@operator)
-        {
-            Expressions = new List<QueryExpression>();
-        }
-
-        public override bool IsMatch(JsonElement root, JsonElement t)
+        public override bool IsMatch(JsonNode root, JsonNode t)
         {
             switch (Operator)
             {
@@ -72,50 +44,50 @@ namespace System.Text.Json
         }
     }
 
-    internal partial class BooleanQueryExpression : QueryExpression
+    internal partial class BooleanQueryExpression
     {
-        public readonly object Left;
-        public readonly object? Right;
-
-        public BooleanQueryExpression(QueryOperator @operator, object left, object? right) : base(@operator)
+        private IEnumerable<JsonNode?> GetResult(JsonNode root, JsonNode t, object? o)
         {
-            Left = left;
-            Right = right;
-        }
-
-        private IEnumerable<JsonElement?> GetResult(JsonElement root, JsonElement t, object? o)
-        {
-            if (o is JsonElement resultToken)
+            if (o is null)
             {
-                return new JsonElement?[1] { resultToken };
+                return [null];
+            }
+            if (o is JsonNode resultToken)
+            {
+                return [resultToken];
+            }
+
+            if (o is JsonElement resultElement)
+            {
+                return [JsonNode.Parse(resultElement.GetRawText())];
             }
 
             if (o is List<PathFilter> pathFilters)
             {
-                return JsonDocumentPath.Evaluate(pathFilters, root, t, false);
+                return JsonNodePath.Evaluate(pathFilters, root, t, false);
             }
 
-            return Enumerable.Empty<JsonElement?>();
+            return Enumerable.Empty<JsonNode?>();
         }
 
-        public override bool IsMatch(JsonElement root, JsonElement t)
+        public override bool IsMatch(JsonNode root, JsonNode t)
         {
             if (Operator == QueryOperator.Exists)
             {
                 return GetResult(root, t, Left).Any();
             }
 
-            using (IEnumerator<JsonElement?> leftResults = GetResult(root, t, Left).GetEnumerator())
+            using (IEnumerator<JsonNode?> leftResults = GetResult(root, t, Left).GetEnumerator())
             {
                 if (leftResults.MoveNext())
                 {
-                    IEnumerable<JsonElement?> rightResultsEn = GetResult(root, t, Right);
-                    ICollection<JsonElement?> rightResults = rightResultsEn as ICollection<JsonElement?> ?? rightResultsEn.ToList();
+                    IEnumerable<JsonNode?> rightResultsEn = GetResult(root, t, Right);
+                    ICollection<JsonNode?> rightResults = rightResultsEn as ICollection<JsonNode?> ?? rightResultsEn.ToList();
 
                     do
                     {
-                        JsonElement leftResult = leftResults.Current.Value;
-                        foreach (JsonElement rightResult in rightResults)
+                        JsonNode? leftResult = leftResults.Current;
+                        foreach (JsonNode? rightResult in rightResults)
                         {
                             if (MatchTokens(leftResult, rightResult))
                             {
@@ -129,7 +101,7 @@ namespace System.Text.Json
             return false;
         }
 
-        private bool MatchTokens(JsonElement leftResult, JsonElement rightResult)
+        private bool MatchTokens(JsonNode leftResult, JsonNode rightResult)
         {
             if (leftResult.IsValue() && rightResult.IsValue())
             {
@@ -217,23 +189,25 @@ namespace System.Text.Json
             return false;
         }
 
-        private static bool RegexEquals(JsonElement input, JsonElement pattern)
+        private static bool RegexEquals(JsonNode input, JsonNode pattern)
         {
-            if (input.ValueKind != JsonValueKind.String || pattern.ValueKind != JsonValueKind.String)
+            var inputValueKind = input.GetSafeJsonValueKind();
+            var patternValueKind = pattern.GetSafeJsonValueKind();
+            if (inputValueKind != JsonValueKind.String || patternValueKind != JsonValueKind.String)
             {
                 return false;
             }
 
-            string regexText = pattern.GetString();
+            string regexText = pattern.GetValue<string>();
             int patternOptionDelimiterIndex = regexText.LastIndexOf('/');
 
             string patternText = regexText.Substring(1, patternOptionDelimiterIndex - 1);
             string optionsText = regexText.Substring(patternOptionDelimiterIndex + 1);
 
-            return Regex.IsMatch(input.GetString(), patternText, GetRegexOptions(optionsText));
+            return Regex.IsMatch(input.GetValue<string>(), patternText, GetRegexOptions(optionsText));
         }
 
-        internal static bool EqualsWithStringCoercion(JsonElement value, JsonElement queryValue)
+        internal static bool EqualsWithStringCoercion(JsonNode value, JsonNode queryValue)
         {
             if (value.Equals(queryValue))
             {
@@ -242,12 +216,16 @@ namespace System.Text.Json
 
             // Handle comparing an integer with a float
             // e.g. Comparing 1 and 1.0
-            if (value.ValueKind == JsonValueKind.Number && queryValue.ValueKind == JsonValueKind.Number)
+
+            var valueKind = value.GetSafeJsonValueKind();
+            var queryValueKind = queryValue.GetSafeJsonValueKind();
+
+            if (valueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
             {
                 return value.GetDouble() == queryValue.GetDouble();
             }
 
-            if (queryValue.ValueKind != JsonValueKind.String)
+            if (queryValueKind != JsonValueKind.String)
             {
                 return false;
             }
@@ -255,12 +233,12 @@ namespace System.Text.Json
             return string.Equals(value.ToString(), queryValue.GetString(), StringComparison.Ordinal);
         }
 
-        internal static bool EqualsWithStrictMatch(JsonElement value, JsonElement queryValue)
+        internal static bool EqualsWithStrictMatch(JsonNode value, JsonNode queryValue)
         {
             // we handle floats and integers the exact same way, so they are pseudo equivalent
 
-            JsonValueKind thisValueKind = value.ValueKind;
-            JsonValueKind queryValueKind = queryValue.ValueKind;
+            JsonValueKind thisValueKind = value.GetSafeJsonValueKind();
+            JsonValueKind queryValueKind = queryValue.GetSafeJsonValueKind();
 
             if (thisValueKind != queryValueKind)
             {
@@ -271,12 +249,12 @@ namespace System.Text.Json
             // e.g. Comparing 1 and 1.0
             if (thisValueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
             {
-                return value.GetDouble() == queryValue.GetDouble();
+                return value.GetValue<double>() == queryValue.GetValue<double>();
             }
 
             if (thisValueKind == JsonValueKind.String && queryValueKind == JsonValueKind.String)
             {
-                return value.GetString() == queryValue.GetString();
+                return value.GetValue<string>() == queryValue.GetValue<string>();
             }
 
             if (thisValueKind == JsonValueKind.Null && queryValueKind == JsonValueKind.Null)
@@ -292,39 +270,12 @@ namespace System.Text.Json
             if ((thisValueKind == JsonValueKind.False || thisValueKind == JsonValueKind.True) &&
                 (queryValueKind == JsonValueKind.False || queryValueKind == JsonValueKind.True))
             {
-                return value.GetBoolean() == queryValue.GetBoolean();
+                return value.GetValue<bool>() == queryValue.GetValue<bool>();
             }
 
             return value.Equals(queryValue);
         }
-
-        internal static RegexOptions GetRegexOptions(string optionsText)
-        {
-            RegexOptions options = RegexOptions.None;
-
-            for (int i = 0; i < optionsText.Length; i++)
-            {
-                switch (optionsText[i])
-                {
-                    case 'i':
-                        options |= RegexOptions.IgnoreCase;
-                        break;
-
-                    case 'm':
-                        options |= RegexOptions.Multiline;
-                        break;
-
-                    case 's':
-                        options |= RegexOptions.Singleline;
-                        break;
-
-                    case 'x':
-                        options |= RegexOptions.ExplicitCapture;
-                        break;
-                }
-            }
-
-            return options;
-        }
     }
 }
+
+#endif

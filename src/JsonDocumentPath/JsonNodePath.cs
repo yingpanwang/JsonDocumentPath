@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
@@ -924,3 +926,5 @@ public class JsonNodePath
         return current;
     }
 }
+
+#endif

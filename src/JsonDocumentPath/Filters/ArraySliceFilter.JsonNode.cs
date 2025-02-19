@@ -1,27 +1,24 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 namespace System.Text.Json
 {
-    internal partial class ArraySliceFilter : PathFilter
+    internal partial class ArraySliceFilter
     {
-        public int? Start { get; set; }
-
-        public int? End { get; set; }
-
-        public int? Step { get; set; }
-
-        public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
         {
             if (Step == 0)
             {
                 throw new JsonException("Step cannot be zero.");
             }
 
-            foreach (JsonElement t in current)
+            foreach (JsonNode t in current)
             {
-                if (t.ValueKind == JsonValueKind.Array)
+                if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
                 {
-                    var aCount = t.GetArrayLength();
+                    var aCount = t.AsArray().Count;
                     // set defaults for null arguments
                     int stepCount = Step ?? 1;
                     int startIndex = Start ?? ((stepCount > 0) ? 0 : aCount - 1);
@@ -71,15 +68,7 @@ namespace System.Text.Json
                 }
             }
         }
-
-        private bool IsValid(int index, int stopIndex, bool positiveStep)
-        {
-            if (positiveStep)
-            {
-                return (index < stopIndex);
-            }
-
-            return (index > stopIndex);
-        }
     }
 }
+
+#endif

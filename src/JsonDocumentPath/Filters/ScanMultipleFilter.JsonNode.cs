@@ -1,21 +1,18 @@
-﻿using System.Collections.Generic;
+﻿#if NET8_0_OR_GREATER
+
+using System.Collections.Generic;
+using System.Text.Json.Nodes;
+using System.Xml.Linq;
 
 namespace System.Text.Json
 {
-    internal partial class ScanMultipleFilter : PathFilter
+    internal partial class ScanMultipleFilter
     {
-        private List<string> _names;
-
-        public ScanMultipleFilter(List<string> names)
+        public override IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch)
         {
-            _names = names;
-        }
-
-        public override IEnumerable<JsonElement?> ExecuteFilter(JsonElement root, IEnumerable<JsonElement?> current, bool errorWhenNoMatch)
-        {
-            foreach (JsonElement c in current)
+            foreach (JsonNode c in current)
             {
-                JsonElement? value = c;
+                JsonNode? value = c;
 
                 foreach (var e in GetNextScanValue(c))
                 {
@@ -34,3 +31,5 @@ namespace System.Text.Json
         }
     }
 }
+
+#endif

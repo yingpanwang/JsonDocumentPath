@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Xunit;
 
-namespace JsonNodePath.Test;
+namespace JNodePath.Test;
 
 public class JsonNodePathExecuteTests
 {
@@ -572,7 +572,10 @@ public class JsonNodePathExecuteTests
                 }";
         var node = JsonNode.Parse(json);
 
-        ExceptionAssert.Throws<JsonException>(() => { node.SelectNode("[1]", true); }, @"Index 1 not valid on JsonElement.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            node.SelectNode("[1]", true);
+        }, @"Index 1 not valid on JsonObject.");
     }
 
     [Fact]
@@ -583,7 +586,10 @@ public class JsonNodePathExecuteTests
                 }";
         var node = JsonNode.Parse(json);
 
-        ExceptionAssert.Throws<JsonException>(() => { node.SelectNode("[*]", true); }, @"Index * not valid on JsonElement.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            node.SelectNode("[*]", true);
+        }, @"Index * not valid on JsonObject.");
     }
 
     [Fact]
@@ -594,7 +600,10 @@ public class JsonNodePathExecuteTests
                 }";
         var node = JsonNode.Parse(json);
 
-        ExceptionAssert.Throws<JsonException>(() => { node.SelectNode("[:]", true); }, @"Array slice is not valid on JsonElement.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            node.SelectNode("[:]", true);
+        }, @"Array slice is not valid on JsonObject.");
     }
 
     [Fact]
@@ -621,7 +630,10 @@ public class JsonNodePathExecuteTests
         string json = @"[1,2,3,4,5]";
         var node = JsonNode.Parse(json);
 
-        ExceptionAssert.Throws<JsonException>(() => { node.SelectNode("BlahBlah", true); }, @"Property 'BlahBlah' not valid on JsonElement.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            node.SelectNode("BlahBlah", true);
+        }, @"Property 'BlahBlah' not valid on JsonArray.");
     }
 
     [Fact]
@@ -664,7 +676,10 @@ public class JsonNodePathExecuteTests
                 }";
         var node = JsonNode.Parse(json);
 
-        ExceptionAssert.Throws<JsonException>(() => { node.SelectNode("['Missing','Missing2']", true); }, "Property 'Missing' does not exist on JObject.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            node.SelectNode("['Missing','Missing2']", true);
+        }, "Property 'Missing' does not exist on JsonObject.");
     }
 
     [Fact]
@@ -672,7 +687,10 @@ public class JsonNodePathExecuteTests
     {
         var a = JsonNode.Parse("[1,2,3,4,5]");
 
-        ExceptionAssert.Throws<JsonException>(() => { a.SelectNode("['Missing','Missing2']", true); }, "Properties 'Missing', 'Missing2' not valid on JsonElement.");
+        ExceptionAssert.Throws<JsonException>(() =>
+        {
+            a.SelectNode("['Missing','Missing2']", true);
+        }, "Properties 'Missing', 'Missing2' not valid on JsonArray.");
     }
 
     [Fact]

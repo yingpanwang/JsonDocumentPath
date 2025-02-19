@@ -82,7 +82,7 @@ namespace System.Text.Json
 
             foreach (JsonNode t in current)
             {
-                if (t.GetValueKind() == JsonValueKind.Array)
+                if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
                 {
                     var aCount = t.AsArray().Count;
                     // set defaults for null arguments

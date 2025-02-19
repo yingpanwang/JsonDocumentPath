@@ -43,7 +43,7 @@ namespace System.Text.Json
         {
             foreach (JsonNode? el in current)
             {
-                if (el?.GetValueKind() == JsonValueKind.Array)
+                if (el?.GetSafeJsonValueKind() == JsonValueKind.Array)
                 {
                     var elArray = el.AsArray();
                     foreach (JsonNode? v in elArray)
@@ -54,7 +54,7 @@ namespace System.Text.Json
                         }
                     }
                 }
-                else if (el?.GetValueKind() == JsonValueKind.Object)
+                else if (el?.GetSafeJsonValueKind() == JsonValueKind.Object)
                 {
                     var elObject = el.AsObject();
                     foreach (KeyValuePair<string, JsonNode> v in elObject)

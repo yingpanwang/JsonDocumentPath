@@ -66,7 +66,7 @@ namespace System.Text.Json
 
         protected static JsonNode? GetTokenIndex(JsonNode t, bool errorWhenNoMatch, int index)
         {
-            if (t.GetValueKind() == JsonValueKind.Array)
+            if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
             {
                 var tArray = t.AsArray();
                 if (tArray.Count <= index)
@@ -96,7 +96,7 @@ namespace System.Text.Json
         {
             yield return (null, value);
 
-            if (value.GetValueKind() == JsonValueKind.Array)
+            if (value.GetSafeJsonValueKind() == JsonValueKind.Array)
             {
                 foreach (var e in value.AsArray())
                 {
@@ -106,7 +106,7 @@ namespace System.Text.Json
                     }
                 }
             }
-            else if (value.GetValueKind() == JsonValueKind.Object)
+            else if (value.GetSafeJsonValueKind() == JsonValueKind.Object)
             {
                 var propertyEnumerator = value.AsObject().GetEnumerator();
 

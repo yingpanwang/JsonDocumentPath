@@ -55,7 +55,7 @@ namespace System.Text.Json
                 }
                 else
                 {
-                    if (t.GetValueKind() == JsonValueKind.Array)
+                    if (t.GetSafeJsonValueKind() == JsonValueKind.Array)
                     {
                         var tArrayEnumerator = t.AsArray().GetEnumerator();
                         while (tArrayEnumerator.MoveNext())

@@ -48,14 +48,14 @@ namespace System.Text.Json
         {
             foreach (JsonNode? t in current)
             {
-                if (t?.GetValueKind() == JsonValueKind.Object)
+                if (t?.GetSafeJsonValueKind() == JsonValueKind.Object)
                 {
                     var tObject = t.AsObject();
                     foreach (string name in Names)
                     {
                         if (tObject.TryGetPropertyValue(name, out JsonNode? v))
                         {
-                            if (v?.GetValueKind() != JsonValueKind.Null)
+                            if (v?.GetSafeJsonValueKind() != JsonValueKind.Null)
                             {
                                 yield return v;
                             }

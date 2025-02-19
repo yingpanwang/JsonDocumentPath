@@ -18,4 +18,23 @@ internal static class JsonNodeExtensions
     {
         return node.GetValue<double>();
     }
+
+    public static int GetInt32(this JsonNode node)
+    {
+        return node.GetValue<int>();
+    }
+
+    /// <summary>
+    /// 获取安全的 JsonValueKind
+    /// </summary>
+    /// <remarks>JsonNode 无法表示 JsonValueKind.Null </remarks>
+    /// <param name="node"></param>
+    /// <returns></returns>
+    public static JsonValueKind GetSafeJsonValueKind(this JsonNode? node)
+    {
+        if (node == null)
+            return JsonValueKind.Null;
+
+        return node.GetValueKind();
+    }
 }

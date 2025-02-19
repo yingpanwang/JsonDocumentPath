@@ -134,6 +134,11 @@ namespace System.Text.Json
         {
             if (o is JsonNode resultToken)
             {
+                // 如果是字符串 有可能嵌套字符 使用了 Unicode 编码 包含了 \u0022
+                if (resultToken.GetSafeJsonValueKind() == JsonValueKind.String)
+                {
+                    return [JsonNode.Parse(resultToken.ToString())];
+                }
                 return new JsonNode?[1] { resultToken };
             }
 
@@ -144,7 +149,7 @@ namespace System.Text.Json
 
             if (o is List<PathFilter> pathFilters)
             {
-                return JsonDocumentPath.Evaluate(pathFilters, root, t, false);
+                return JsonNodePath.Evaluate(pathFilters, root, t, false);
             }
 
             return Enumerable.Empty<JsonNode?>();
@@ -406,8 +411,8 @@ namespace System.Text.Json
 
         private static bool RegexEquals(JsonNode input, JsonNode pattern)
         {
-            var inputValueKind = input.GetValueKind();
-            var patternValueKind = pattern.GetValueKind();
+            var inputValueKind = input.GetSafeJsonValueKind();
+            var patternValueKind = pattern.GetSafeJsonValueKind();
             if (inputValueKind != JsonValueKind.String || patternValueKind != JsonValueKind.String)
             {
                 return false;
@@ -454,8 +459,8 @@ namespace System.Text.Json
             // Handle comparing an integer with a float
             // e.g. Comparing 1 and 1.0
 
-            var valueKind = value.GetValueKind();
-            var queryValueKind = queryValue.GetValueKind();
+            var valueKind = value.GetSafeJsonValueKind();
+            var queryValueKind = queryValue.GetSafeJsonValueKind();
 
             if (valueKind == JsonValueKind.Number && queryValueKind == JsonValueKind.Number)
             {
@@ -474,8 +479,8 @@ namespace System.Text.Json
         {
             // we handle floats and integers the exact same way, so they are pseudo equivalent
 
-            JsonValueKind thisValueKind = value.GetValueKind();
-            JsonValueKind queryValueKind = queryValue.GetValueKind();
+            JsonValueKind thisValueKind = value.GetSafeJsonValueKind();
+            JsonValueKind queryValueKind = queryValue.GetSafeJsonValueKind();
 
             if (thisValueKind != queryValueKind)
             {

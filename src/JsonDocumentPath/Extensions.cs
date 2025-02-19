@@ -16,9 +16,13 @@ internal static class Extensions
                src.ValueKind == JsonValueKind.Undefined;
     }
 
-    public static bool IsValue(this JsonNode src)
+    public static bool IsValue(this JsonNode? src)
     {
-        var nodeValueKind = src.GetValueKind();
+        // JsonNode 无法表示 JsonValueKind.Null 但 null 是正常 JsonValue
+        if (src == null)
+            return true;
+
+        var nodeValueKind = src.GetSafeJsonValueKind();
 
         return nodeValueKind == JsonValueKind.False ||
                nodeValueKind == JsonValueKind.True ||
@@ -35,7 +39,7 @@ internal static class Extensions
 
     public static bool IsContainer(this JsonNode src)
     {
-        var nodeValueKind = src.GetValueKind();
+        var nodeValueKind = src.GetSafeJsonValueKind();
 
         return nodeValueKind == JsonValueKind.Array || nodeValueKind == JsonValueKind.Object;
     }
@@ -66,7 +70,7 @@ internal static class Extensions
         if (src == null)
             return false;
 
-        var nodeValueKind = src.GetValueKind();
+        var nodeValueKind = src.GetSafeJsonValueKind();
         if (nodeValueKind == JsonValueKind.Object)
         {
             var currentObject = src.AsObject();
@@ -103,7 +107,7 @@ internal static class Extensions
         if (src == null)
             return false;
 
-        var nodeValueKind = src.GetValueKind();
+        var nodeValueKind = src.GetSafeJsonValueKind();
 
         if (nodeValueKind == JsonValueKind.Object)
         {
@@ -193,7 +197,7 @@ internal static class Extensions
 
     public static IEnumerable<JsonNode?> ChildrenTokens(this JsonNode src)
     {
-        var srcValueKind = src.GetValueKind();
+        var srcValueKind = src.GetSafeJsonValueKind();
 
         if (srcValueKind == JsonValueKind.Object)
         {
@@ -286,9 +290,9 @@ internal static class Extensions
 
     public static int CompareTo(this JsonNode value, JsonNode queryValue)
     {
-        JsonValueKind comparisonType = (value.GetValueKind() == JsonValueKind.String && value.GetValueKind() != queryValue.GetValueKind())
-                                        ? queryValue.GetValueKind()
-                                        : value.GetValueKind();
+        JsonValueKind comparisonType = (value.GetSafeJsonValueKind() == JsonValueKind.String && value.GetSafeJsonValueKind() != queryValue.GetSafeJsonValueKind())
+                                        ? queryValue.GetSafeJsonValueKind()
+                                        : value.GetSafeJsonValueKind();
 
         return Compare(comparisonType, value, queryValue);
     }
@@ -348,8 +352,8 @@ internal static class Extensions
 
     private static int Compare(JsonValueKind valueType, JsonNode objA, JsonNode objB)
     {
-        JsonValueKind aValueKind = objA.GetValueKind();
-        JsonValueKind bValueKind = objB.GetValueKind();
+        JsonValueKind aValueKind = objA.GetSafeJsonValueKind();
+        JsonValueKind bValueKind = objB.GetSafeJsonValueKind();
 
         /*Same types*/
         if (aValueKind == JsonValueKind.Null && bValueKind == JsonValueKind.Null)

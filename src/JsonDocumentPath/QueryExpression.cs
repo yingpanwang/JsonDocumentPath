@@ -201,8 +201,8 @@ namespace System.Text.Json
 
                     do
                     {
-                        JsonNode leftResult = leftResults.Current;
-                        foreach (JsonNode rightResult in rightResults)
+                        JsonNode? leftResult = leftResults.Current;
+                        foreach (JsonNode? rightResult in rightResults)
                         {
                             if (MatchTokens(leftResult, rightResult))
                             {

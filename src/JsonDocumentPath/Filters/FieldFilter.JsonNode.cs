@@ -1,4 +1,4 @@
-﻿#if NET8_0_OR_GREATER
+#if NET6_0_OR_GREATER
 
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
@@ -30,7 +30,13 @@ namespace System.Text.Json
                     }
                     else
                     {
-                        foreach (var p in t.ChildrenNodes())
+                        foreach (var p in
+#if NET6_0 || NET7_0
+                            Extensions.ChildrenNodes(t)
+#else
+                            t.ChildrenNodes()
+#endif
+                            )
                         {
                             yield return p;
                         }

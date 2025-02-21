@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
-
-#if NET8_0_OR_GREATER
+#if NET6_0_OR_GREATER
 
 using System.Text.Json.Nodes;
 
@@ -258,7 +257,19 @@ namespace System.Text.Json
         }
     }
 
-#if NET8_0_OR_GREATER
+#if NET6_0 || NET7_0
+    internal partial class Extensions
+    {
+        public static JsonValueKind GetValueKind(this JsonNode jsonNode)
+        {
+            var el = JsonSerializer.SerializeToElement(jsonNode);
+
+            return el.ValueKind;
+        }
+    }
+#endif
+
+#if NET6_0_OR_GREATER
 
     internal static partial class Extensions
     {

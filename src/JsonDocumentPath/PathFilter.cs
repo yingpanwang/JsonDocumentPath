@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
-#if NET8_0_OR_GREATER
+#if NET6_0_OR_GREATER
 
 using System.Text.Json.Nodes;
 
@@ -66,7 +66,7 @@ namespace System.Text.Json
             }
         }
 
-#if NET8_0_OR_GREATER
+#if NET6_0_OR_GREATER
 
         public abstract IEnumerable<JsonNode?> ExecuteFilter(JsonNode root, IEnumerable<JsonNode?> current, bool errorWhenNoMatch);
 
